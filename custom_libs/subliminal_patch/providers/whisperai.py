@@ -331,10 +331,7 @@ class WhisperAIProvider(Provider):
         return whisper_get_language(results["language_code"], results["detected_language"])
 
     def query(self, language, video):
-        logger.debug(
-            f'Processing language request: {language.alpha3} ({language_from_alpha3(language.alpha3)}) | '
-            f'File: "{os.path.basename(video.original_path)}"'
-        )
+        logger.debug(f'Processing language request: {language.alpha3} ({language_from_alpha3(language.alpha3)}) - File: "{os.path.basename(video.original_path)}"')
         if language not in self.languages:
             logger.debug(f'Language {language.alpha3} not supported by Whisper')
             return None
@@ -412,23 +409,15 @@ class WhisperAIProvider(Provider):
 
         if sub.task == "translate":
             if language.alpha3 != "eng":
-                logger.debug(
-                    f'Cannot translate from {sub.audio_language} -> {language.alpha3}! | '
-                    f'Only translations to English supported! | '
-                    f'File: "{os.path.basename(sub.video.original_path)}"'
-                )
+                logger.debug(f'Cannot translate from {sub.audio_language} ({language_from_alpha3(sub.audio_language)}) -> {language.alpha3} ({language_from_alpha3(language.alpha3)})! - Only translations to English supported! - File: "{os.path.basename(sub.video.original_path)}"')
                 return None
 
         sub.release_info = f'{sub.task} {language_from_alpha3(sub.audio_language)} audio -> {language_from_alpha3(language.alpha3)} SRT'
-        logger.debug(f'WhisperAI query: ({video.original_path}): {sub.audio_language} -> {language.alpha3} | Task: {sub.task}')
+        logger.debug(f'WhisperAI query: ({video.original_path}): {sub.audio_language} -> {language.alpha3} - Task: {sub.task}')
         return sub
 
     def list_subtitles(self, video, languages):
-        logger.debug(
-            f'Languages requested from WhisperAI: '
-            f'{', '.join(f'{l.alpha3} ({language_from_alpha3(l.alpha3)})' for l in languages)} | '
-            f'File: "{os.path.basename(video.original_path)}"'
-        )
+        logger.debug(f'Languages requested from WhisperAI: {", ".join(f"{l.alpha3} ({language_from_alpha3(l.alpha3)})" for l in languages)} - File: "{os.path.basename(video.original_path)}"')
         subtitles = [self.query(l, video) for l in languages]
         return [s for s in subtitles if s is not None]
 
@@ -460,11 +449,8 @@ class WhisperAIProvider(Provider):
                 subtitle.content = None
                 return
 
-        logger.info(
-            f'WhisperAI: Starting {subtitle.task} from {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)}) '
-            f'-> {output_language} ({language_from_alpha3(output_language)}) | '
-            f'File: "{os.path.basename(subtitle.video.original_path)}"'
-        )
+        logger.info(f'WhisperAI: Starting {subtitle.task} from {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)}) -> {output_language} ({language_from_alpha3(output_language)}) - File: "{os.path.basename(subtitle.video.original_path)}"')
+
         start_time = time.time()
 
         video_name = subtitle.video.original_path if self.pass_video_name else None
@@ -488,9 +474,4 @@ class WhisperAIProvider(Provider):
             logger.debug(f'First {subtitle_length} bytes of subtitle: {response.content[0:subtitle_length]}')
 
         subtitle.content = response.content
-        logger.info(
-            f'WhisperAI: Completed {subtitle.task} from {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)}) '
-            f'-> {output_language} ({language_from_alpha3(output_language)}) | '
-            f'Duration: {timedelta(seconds=round(time.time() - start_time))} | '
-            f'File: "{os.path.basename(subtitle.video.original_path)}"'
-        )
+        logger.info(f'WhisperAI: Completed {subtitle.task} from {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)}) -> {output_language} ({language_from_alpha3(output_language)}) - Duration: {timedelta(seconds=round(time.time() - start_time))} - File: "{os.path.basename(subtitle.video.original_path)}"')
