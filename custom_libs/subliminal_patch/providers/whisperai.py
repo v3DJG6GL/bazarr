@@ -333,7 +333,7 @@ class WhisperAIProvider(Provider):
     def query(self, language, video):
         logger.debug(
             f'Processing language request: {language.alpha3} ({language_from_alpha3(language.alpha3)}) | '
-            f'File "{os.path.basename(video.original_path)}"'
+            f'File: "{os.path.basename(video.original_path)}"'
         )
         if language not in self.languages:
             logger.debug(f'Language {language.alpha3} not supported by Whisper')
@@ -461,7 +461,7 @@ class WhisperAIProvider(Provider):
                 return
 
         logger.info(
-            f'WhisperAI: Starting {subtitle.task} from {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)}) | '
+            f'WhisperAI: Starting {subtitle.task} from {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)}) '
             f'-> {output_language} ({language_from_alpha3(output_language)}) | '
             f'File: "{os.path.basename(subtitle.video.original_path)}"'
         )
