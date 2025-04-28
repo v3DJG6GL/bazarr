@@ -281,7 +281,7 @@ class WhisperAIProvider(Provider):
             raise ConfigurationError('Whisper Web Service Transcription/translation timeout must be provided')
 
         if not ffmpeg_path:
-            raise ConfigurationError("ffmpeg path must be provided")
+            raise ConfigurationError('ffmpeg path must be provided')
 
         if pass_video_name is None:
             raise ConfigurationError('Whisper Web Service Pass Video Name option must be provided')
@@ -305,7 +305,7 @@ class WhisperAIProvider(Provider):
     def detect_language(self, path) -> Language:
         out = encode_audio_stream(path, self.ffmpeg_path)
         if out is None:
-            logger.info(f"Whisper cannot detect language of {path} - bad audio track")
+            logger.info(f'Whisper cannot detect language of {path} - bad audio track')
             return None
 
         try:
@@ -315,28 +315,28 @@ class WhisperAIProvider(Provider):
                                 timeout=(self.response, self.timeout))
             results = r.json()
         except (JSONDecodeError, requests.exceptions.JSONDecodeError):
-            logger.error("Invalid JSON response in language detection")
+            logger.error('Invalid JSON response in language detection')
             return None
 
         if not results.get("language_code"):
-            logger.info("Whisper returned empty language code")
+            logger.info('Whisper returned empty language code')
             return None
 
         # Explicitly handle 'und' from Whisper results
         if results["language_code"] == "und":
-            logger.info("Whisper detected undefined language")
+            logger.info('Whisper detected undefined language')
             return None
 
-        logger.debug(f"Whisper detection raw results: {results}")
+        logger.debug(f'Whisper detection raw results: {results}')
         return whisper_get_language(results["language_code"], results["detected_language"])
 
     def query(self, language, video):
         logger.debug(
-            f'Processing language request: {language.alpha3} ({language_from_alpha3(language.alpha3)}) '
-            f'for file: "{os.path.basename(video.original_path)}"'
+            f'Processing language request: {language.alpha3} ({language_from_alpha3(language.alpha3)}) | '
+            f'File "{os.path.basename(video.original_path)}"'
         )
         if language not in self.languages:
-            logger.debug(f"Language {language.alpha3} not supported by Whisper")
+            logger.debug(f'Language {language.alpha3} not supported by Whisper')
             return None
 
         sub = WhisperAISubtitle(language, video)
@@ -344,7 +344,7 @@ class WhisperAIProvider(Provider):
 
         # Handle undefined/no audio languages
         if not video.audio_languages:
-            logger.debug("No audio language tags present, forcing detection")
+            logger.debug('No audio language tags present, forcing detection')
             detected_lang = self.detect_language(video.original_path)
             if not detected_lang:
                 sub.task = "error"
@@ -355,7 +355,7 @@ class WhisperAIProvider(Provider):
             detected_alpha3 = detected_lang.alpha3
             if detected_alpha3 in language_mapping:
                 detected_alpha3 = language_mapping[detected_alpha3]
-                logger.debug(f"Mapped detected language {detected_lang} -> {detected_alpha3}")
+                logger.debug(f'Mapped detected language {detected_lang} -> {detected_alpha3}')
 
             sub.audio_language = detected_alpha3
 
@@ -366,7 +366,7 @@ class WhisperAIProvider(Provider):
             processed_languages = {}
             for lang in video.audio_languages:
                 if lang in language_mapping:
-                    logger.debug(f"Mapping audio language tag: {lang} -> {language_mapping[lang]}")
+                    logger.debug(f'Mapping audio language tag: {lang} -> {language_mapping[lang]}')
                 mapped_lang = language_mapping.get(lang, lang)
                 processed_languages[lang] = mapped_lang
 
@@ -392,7 +392,7 @@ class WhisperAIProvider(Provider):
             else:
                 # Only run language detection if we have ambiguous language tags
                 if sub.audio_language in AMBIGUOUS_LANGUAGE_CODES:
-                    logger.debug(f"Audio language tag is ambiguous ({sub.audio_language}), performing detection")
+                    logger.debug(f'Audio language tag "{sub.audio_language}" is ambiguous, performing detection')
                     detected_lang = self.detect_language(video.original_path)
                     if detected_lang is None:
                         sub.task = "error"
@@ -408,26 +408,26 @@ class WhisperAIProvider(Provider):
                     if detected_alpha3 != language.alpha3:
                         sub.task = "translate"
                 else:
-                    logger.debug(f"Using existing audio language tag: {sub.audio_language} - skipping detection")
+                    logger.debug(f'Using existing audio language tag: {sub.audio_language} - skipping detection')
 
         if sub.task == "translate":
             if language.alpha3 != "eng":
                 logger.debug(
-                    f'Cannot translate from {sub.audio_language} -> {language.alpha3}! '
-                    f'Only translations to English supported! '
+                    f'Cannot translate from {sub.audio_language} -> {language.alpha3}! | '
+                    f'Only translations to English supported! | '
                     f'File: "{os.path.basename(sub.video.original_path)}"'
                 )
                 return None
 
-        sub.release_info = f"{sub.task} {language_from_alpha3(sub.audio_language)} audio -> {language_from_alpha3(language.alpha3)} SRT"
-        logger.debug(f"Whisper query: ({video.original_path}): {sub.audio_language} -> {language.alpha3} [TASK: {sub.task}]")
+        sub.release_info = f'{sub.task} {language_from_alpha3(sub.audio_language)} audio -> {language_from_alpha3(language.alpha3)} SRT'
+        logger.debug(f'WhisperAI query: ({video.original_path}): {sub.audio_language} -> {language.alpha3} | Task: {sub.task}')
         return sub
 
     def list_subtitles(self, video, languages):
         logger.debug(
-            f"Languages requested from Whisper: "
-            f"{', '.join(f'{l.alpha3} ({language_from_alpha3(l.alpha3)})' for l in languages)} "
-            f'for file: "{os.path.basename(video.original_path)}"'
+            f'Languages requested from WhisperAI: '
+            f'{', '.join(f'{l.alpha3} ({language_from_alpha3(l.alpha3)})' for l in languages)} | '
+            f'File: "{os.path.basename(video.original_path)}"'
         )
         subtitles = [self.query(l, video) for l in languages]
         return [s for s in subtitles if s is not None]
@@ -441,7 +441,7 @@ class WhisperAIProvider(Provider):
 
         out = encode_audio_stream(subtitle.video.original_path, self.ffmpeg_path, subtitle.force_audio_stream)
         if not out:
-            logger.info(f"Whisper cannot process {subtitle.video.original_path} due to missing/bad audio track")
+            logger.info(f"WhisperAI cannot process {subtitle.video.original_path} due to missing/bad audio track")
             subtitle.content = None
             return
 
@@ -454,17 +454,15 @@ class WhisperAIProvider(Provider):
             if output_language == "eng":
                 input_language = "en"
                 subtitle.task = "transcribe"
-                logger.info(f"Treating unsupported language tag '{subtitle.audio_language}' as English")
+                logger.info(f'Treating unsupported language tag "{subtitle.audio_language}" as English')
             else:
-                logger.info(f"Unsupported audio language tag: '{subtitle.audio_language}'")
+                logger.info(f'Unsupported audio language tag: "{subtitle.audio_language}"')
                 subtitle.content = None
                 return
 
         logger.info(
-            f"\n"
-            f"Starting WhisperAI {subtitle.task}\n"
-            f"From: {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)})\n"
-            f"To: {output_language} ({language_from_alpha3(output_language)})\n"
+            f'WhisperAI: Starting {subtitle.task} from {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)}) | '
+            f'-> {output_language} ({language_from_alpha3(output_language)}) | '
             f'File: "{os.path.basename(subtitle.video.original_path)}"'
         )
         start_time = time.time()
@@ -491,10 +489,8 @@ class WhisperAIProvider(Provider):
 
         subtitle.content = response.content
         logger.info(
-            f"\n"
-            f"Completed {subtitle.task}\n"
-            f"From: {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)})\n"
-            f"To: {output_language} ({language_from_alpha3(output_language)})\n"
-            f"Duration: {timedelta(seconds=round(time.time() - start_time))}\n"
+            f'WhisperAI: Completed {subtitle.task} from {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)}) '
+            f'-> {output_language} ({language_from_alpha3(output_language)}) | '
+            f'Duration: {timedelta(seconds=round(time.time() - start_time))} | '
             f'File: "{os.path.basename(subtitle.video.original_path)}"'
         )
