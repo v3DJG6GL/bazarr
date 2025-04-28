@@ -309,6 +309,7 @@ class WhisperAIProvider(Provider):
             return None
 
         try:
+            video_name = path if self.pass_video_name else None
             r = self.session.post(f"{self.endpoint}/detect-language",
                                 params={'encode': 'false', 'video_file': {video_name}},
                                 files={'audio_file': out},
@@ -404,6 +405,9 @@ class WhisperAIProvider(Provider):
 
                     if detected_alpha3 != language.alpha3:
                         sub.task = "translate"
+                    else:
+                        # Explicitly set task to transcribe if languages match
+                        sub.task = "transcribe"
                 else:
                     logger.debug(f'Using existing audio language tag: {sub.audio_language} - skipping detection')
 
