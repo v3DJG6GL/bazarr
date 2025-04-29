@@ -343,7 +343,7 @@ class WhisperAIProvider(Provider):
 
         # Handle undefined/no audio languages
         if not video.audio_languages:
-            logger.debug('No audio language tags present, forcing detection')
+            logger.debug('No audio language tags present, forcing detection!')
             detected_lang = self.detect_language(video.original_path)
             if not detected_lang:
                 sub.task = "error"
@@ -397,9 +397,14 @@ class WhisperAIProvider(Provider):
                 )
 
                 if original_ambiguous:
+                    # Format audio languages with both code and name
+                    formatted_audio_langs = [
+                        f'"{lang}" ({language_from_alpha3(lang)})'
+                        for lang in video.audio_languages
+                    ]
                     logger.debug(
-                        f'Original unmapped audio language code {video.audio_languages} is on '
-                        f'"Ambiguous Languages Codes" list: {self.ambiguous_language_codes} - forcing detection!'
+                        f'Original unmapped audio language code(s) {", ".join(formatted_audio_langs)} '
+                        f'matches "Ambiguous Languages Codes" list: {self.ambiguous_language_codes} - forcing detection!'
                     )
 
                     detected_lang = self.detect_language(video.original_path)
@@ -417,13 +422,18 @@ class WhisperAIProvider(Provider):
                     sub.task = "transcribe" if detected_alpha3 == language.alpha3 else "translate"
 
                     logger.debug(
-                        f'Post-detection mapping: {detected_lang.alpha3} -> {sub.audio_language} '
-                        f'(Requested: {language.alpha3})'
+                        f'WhisperAI detected audio language: {detected_lang.alpha3} ({language_from_alpha3(detected_lang.alpha3)}) '
+                        f'-> {sub.audio_language} ({language_from_alpha3(sub.audio_language)}) - '
+                        f'(requested subtitle language: {language.alpha3} ({language_from_alpha3(language.alpha3)}))'
                     )
                 else:
+                    formatted_original = [
+                        f'"{lang}" ({language_from_alpha3(lang)})'
+                        for lang in video.audio_languages
+                    ]
                     logger.debug(
-                        f'Using existing audio language tag: {sub.audio_language} '
-                        f'(originally {video.audio_languages}) - skipping detection'
+                        f'Using existing audio language tag: {sub.audio_language} ({language_from_alpha3(sub.audio_language)}) '
+                        f'(originally {formatted_original}) - skipping detection!'
                     )
 
         if sub.task == "translate":
