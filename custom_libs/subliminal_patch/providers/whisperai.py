@@ -140,7 +140,7 @@ def whisper_get_language_reverse(alpha3):
 
 language_mapping = {
     "gsw": "deu",  # Swiss German -> German (ISO 639-3)
-    # "und": "eng", # Undefined -> English
+    "und": "eng", # Undefined -> English
 }
 
 logger = logging.getLogger(__name__)
@@ -389,9 +389,19 @@ class WhisperAIProvider(Provider):
                 sub.release_info = "No valid audio language determined"
                 return sub
             else:
-                # Only run language detection if we have ambiguous language tags
-                if sub.audio_language in self.ambiguous_language_codes:
-                    logger.debug(f'Audio language tag "{sub.audio_language}" is ambiguous, performing detection')
+                # Handle case where audio language exists but may need verification
+                # Only run language detection if original unmapped audio languages contain ambiguous codes
+                original_ambiguous = any(
+                    lang in self.ambiguous_language_codes
+                    for lang in video.audio_languages
+                )
+
+                if original_ambiguous:
+                    logger.debug(
+                        f'Original unmapped audio language code {video.audio_languages} is on '
+                        f'"Ambiguous Languages Codes" list: {self.ambiguous_language_codes} - forcing detection!'
+                    )
+
                     detected_lang = self.detect_language(video.original_path)
                     if detected_lang is None:
                         sub.task = "error"
@@ -399,18 +409,22 @@ class WhisperAIProvider(Provider):
                         return sub
 
                     detected_alpha3 = detected_lang.alpha3
+                    # Apply language mapping after detection
                     if detected_alpha3 in language_mapping:
                         detected_alpha3 = language_mapping[detected_alpha3]
 
                     sub.audio_language = detected_alpha3
+                    sub.task = "transcribe" if detected_alpha3 == language.alpha3 else "translate"
 
-                    if detected_alpha3 != language.alpha3:
-                        sub.task = "translate"
-                    else:
-                        # Explicitly set task to transcribe if languages match
-                        sub.task = "transcribe"
+                    logger.debug(
+                        f'Post-detection mapping: {detected_lang.alpha3} -> {sub.audio_language} '
+                        f'(Requested: {language.alpha3})'
+                    )
                 else:
-                    logger.debug(f'Using existing audio language tag: {sub.audio_language} - skipping detection')
+                    logger.debug(
+                        f'Using existing audio language tag: {sub.audio_language} '
+                        f'(originally {video.audio_languages}) - skipping detection'
+                    )
 
         if sub.task == "translate":
             if language.alpha3 != "eng":
