@@ -340,6 +340,7 @@ def get_providers_auth():
             'ffmpeg_path': _FFMPEG_BINARY,
             'loglevel': settings.whisperai.loglevel,
             'pass_video_name': settings.whisperai.pass_video_name,
+            'ambiguous_language_codes': settings.whisperai.ambiguous_language_codes,
         },
         "animetosho": {
             'search_threshold': settings.animetosho.search_threshold,
