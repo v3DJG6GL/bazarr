@@ -618,6 +618,13 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
         defaultValue: false,
       },
       {
+        type: "chips",
+        key: "ambiguous_language_codes",
+        name: "Ambiguous Language Codes",
+        description: "Language codes that should always trigger language detection (Default: und, mul, mis, zxx)",
+        defaultValue: ["und", "mul", "mis", "zxx"],
+      },
+      {
         type: "testbutton",
         key: "whisperai",
         name: "Test Connection button",

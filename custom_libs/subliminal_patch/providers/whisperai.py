@@ -269,7 +269,7 @@ class WhisperAIProvider(Provider):
 
     video_types = (Episode, Movie)
 
-    def __init__(self, endpoint=None, response=None, timeout=None, ffmpeg_path=None, pass_video_name=None, loglevel=None):
+    def __init__(self, endpoint=None, response=None, timeout=None, ffmpeg_path=None, pass_video_name=None, loglevel=None, ambiguous_language_codes=None):
         set_log_level(loglevel)
         if not endpoint:
             raise ConfigurationError('Whisper Web Service Endpoint must be provided')
@@ -292,6 +292,10 @@ class WhisperAIProvider(Provider):
         self.session = None
         self.ffmpeg_path = ffmpeg_path
         self.pass_video_name = pass_video_name
+
+        # Use provided ambiguous language codes or fall back to default
+        self.ambiguous_language_codes = ambiguous_language_codes if ambiguous_language_codes else DEFAULT_AMBIGUOUS_LANGUAGE_CODES
+        logger.debug(f"Using ambiguous language codes: {self.ambiguous_language_codes}")
 
     def initialize(self):
         self.session = Session()
@@ -389,7 +393,7 @@ class WhisperAIProvider(Provider):
                 return sub
             else:
                 # Only run language detection if we have ambiguous language tags
-                if sub.audio_language in AMBIGUOUS_LANGUAGE_CODES:
+                if sub.audio_language in self.ambiguous_language_codes:
                     logger.debug(f'Audio language tag "{sub.audio_language}" is ambiguous, performing detection')
                     detected_lang = self.detect_language(video.original_path)
                     if detected_lang is None:
