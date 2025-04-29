@@ -620,8 +620,7 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
       {
         type: "chips",
         key: "ambiguous_language_codes",
-        name: "Ambiguous Language Codes",
-        description: "Language codes that should always trigger language detection (Default: und, mul, mis, zxx)",
+        name: "Ambiguous Language Codes: Language that should always trigger WhisperAI language detection (Default: und, mul, mis, zxx)",
         defaultValue: ["und", "mul", "mis", "zxx"],
       },
       {

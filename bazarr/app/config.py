@@ -295,7 +295,7 @@ validators = [
     Validator('whisperai.pass_video_name', must_exist=True, default=False, is_type_of=bool),
     Validator('whisperai.loglevel', must_exist=True, default='INFO', is_type_of=str,
               is_in=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']),
-    Validator('whisperai.ambiguous_language_codes', must_exist=True, default=["und", "mul", "mis", "zxx"], is_type_of=list),
+    Validator('whisperai.ambiguous_language_codes', default=["und", "mul", "mis", "zxx"], is_type_of=list),
 
     # legendasdivx section
     Validator('legendasdivx.username', must_exist=True, default='', is_type_of=str, cast=str),

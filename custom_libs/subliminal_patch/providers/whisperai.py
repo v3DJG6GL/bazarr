@@ -125,9 +125,6 @@ whisper_languages = {
     "su": "sundanese",
 }
 
-# List of ambiguous language codes that should trigger detection
-AMBIGUOUS_LANGUAGE_CODES = ["und", "mul", "mis", "zxx"]  # undefined, multiple languages, miscellaneous, no linguistic content
-
 # Create reverse mapping from alpha3 to alpha2 codes
 whisper_alpha3_to_alpha2 = {}
 for alpha2, name in whisper_languages.items():
@@ -293,8 +290,8 @@ class WhisperAIProvider(Provider):
         self.ffmpeg_path = ffmpeg_path
         self.pass_video_name = pass_video_name
 
-        # Use provided ambiguous language codes or fall back to default
-        self.ambiguous_language_codes = ambiguous_language_codes if ambiguous_language_codes else DEFAULT_AMBIGUOUS_LANGUAGE_CODES
+        # Use provided ambiguous language codes directly without fallback
+        self.ambiguous_language_codes = ambiguous_language_codes if ambiguous_language_codes is not None else []
         logger.debug(f"Using ambiguous language codes: {self.ambiguous_language_codes}")
 
     def initialize(self):
