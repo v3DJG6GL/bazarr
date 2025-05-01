@@ -145,6 +145,7 @@ def whisper_get_language_reverse(alpha3):
 
 language_mapping = {
     "gsw": "deu",  # Swiss German -> German (ISO 639-3)
+    "und": "eng",
 }
 
 
@@ -444,7 +445,7 @@ class WhisperAIProvider(Provider):
         sub.task = "transcribe"
         if original_stream_idx is not None:
             sub.original_stream_idx = original_stream_idx
-            logger.debug(f"Processing audio stream #{original_stream_idx}")
+            logger.debug(f"Tracking original audio stream index: {original_stream_idx}")
 
         # Handle undefined/no audio languages
         if not video.audio_languages:
@@ -462,8 +463,20 @@ class WhisperAIProvider(Provider):
                 logger.debug(f'Mapped detected language {detected_lang.alpha3} -> {detected_alpha3}')
 
             sub.audio_language = detected_alpha3
+
+            # Determine if we need transcription or translation
             if detected_alpha3 != language.alpha3:
-                sub.task = "translate"
+                # Set to translation task only if target is English
+                if language.alpha3 == "eng":
+                    sub.task = "translate"
+                else:
+                    # Non-English target languages aren't supported for translation
+                    file_idx = sub.original_stream_idx if sub.original_stream_idx is not None else "unknown"
+                    logger.debug(
+                        f'Cannot translate from file stream index {file_idx} ({detected_alpha3} -> {language.alpha3})! '
+                        f'Only English translations supported! File: "{os.path.basename(video.original_path)}"'
+                    )
+                    return None
         else:
             # Process all audio languages with mapping
             processed_languages = []
@@ -668,6 +681,12 @@ class WhisperAIProvider(Provider):
         # Invoke Whisper through the API. This may take a long time depending on the file.
         # TODO: This loads the entire file into memory, find a good way to stream the file in chunks
 
+        if subtitle.task == "translate" and subtitle.language.alpha3 != "eng":
+            logger.warning(f'WhisperAI cannot translate to non-English target language: {subtitle.language.alpha3}')
+            subtitle.content = None
+            return
+
+        # Invoke Whisper through the API. This may take a long time depending on the file.
         if subtitle.task == "error":
             return
 
