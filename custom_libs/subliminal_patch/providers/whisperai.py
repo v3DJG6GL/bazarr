@@ -212,9 +212,9 @@ def get_ISO_639_3_code(iso639_2_code):
 def encode_audio_stream(path, ffmpeg_path, audio_stream_language=None, stream_index=None):
     if audio_stream_language:
         audio_stream_language = get_ISO_639_2_code(audio_stream_language)
-        logger.debug(f"Encoding audio stream with language '{audio_stream_language}' (stream #{stream_index+1 if stream_index is not None else '?'}) to WAV with ffmpeg for {os.path.basename(path)}")
+        logger.debug(f"Encoding audio stream #{stream_index} with language '{audio_stream_language}' to WAV with ffmpeg for {os.path.basename(path)}")
     else:
-        logger.debug(f'"Encoding audio stream to WAV with ffmpeg (stream #{stream_index}) in "{os.path.basename(path)}"')
+        logger.debug(f'"Encoding audio stream #{stream_index} to WAV with ffmpeg in "{os.path.basename(path)}"')
     try:
         # Get language info if available for enhanced logging
         lang_info = ""
@@ -531,7 +531,7 @@ class WhisperAIProvider(Provider):
 
                     file_idx = sub.original_stream_idx if sub.original_stream_idx is not None else "unknown"
                     logger.debug(
-                        f'Unmapped audio language code {", ".join(formatted_audio_langs)} from audio stream #{file_idx} '
+                        f'Audio language code {", ".join(formatted_audio_langs)} from audio stream #{file_idx} '
                         f'matches "Ambiguous Languages Codes" list: {self.ambiguous_language_codes} - forcing detection!'
                     )
 
