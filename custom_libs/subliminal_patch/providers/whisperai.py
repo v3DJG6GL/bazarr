@@ -231,8 +231,6 @@ def encode_audio_stream(path, ffmpeg_path, audio_stream_language=None, stream_in
 
         # Use ffmpeg's absolute stream index syntax instead of audio-relative index
         if stream_index is not None:
-            logger.debug(f'Selecting audio stream #{stream_index}')
-
             # Build command with direct stream index using -map
             cmd = [
                 ffmpeg_path, "-nostdin", "-threads", "0",
@@ -269,8 +267,6 @@ def encode_audio_stream(path, ffmpeg_path, audio_stream_language=None, stream_in
             else:
                 # Default to first audio stream
                 audio = input_node['a:0']
-                logger.debug("Selecting first audio stream (a:0)")
-
             # Run ffmpeg
             out, _ = (
                 audio.output("-", format="s16le", acodec="pcm_s16le", ac=1, ar=16000, af="aresample=async=1")
@@ -442,8 +438,10 @@ class WhisperAIProvider(Provider):
         if results["language_code"] == "und":
             if stream_index is None:
                 logger.info(f'Whisper detected undefined language for first audio stream (a:0) in "{os.path.basename(path)}"')
+                logger.debug(f'Whisper detection raw results for first audio stream (a:0) in "{os.path.basename(path)}": {results}')
             else:
                 logger.info(f'Whisper detected undefined language for stream #{stream_index} in "{os.path.basename(path)}"')
+                logger.debug(f'Whisper detection raw results for stream #{stream_index} in "{os.path.basename(path)}": {results}')
             return None
 
         if stream_index is None:
@@ -464,11 +462,11 @@ class WhisperAIProvider(Provider):
         sub.task = "transcribe"
         if original_stream_idx is not None:
             sub.original_stream_idx = original_stream_idx
-            logger.debug(f'Tracking original audio stream #{original_stream_idx}')
+            logger.debug(f'Tracking original audio stream #{original_stream_idx} in "{os.path.basename(video.original_path)}"')
 
         # Handle undefined/no audio languages
         if not video.audio_languages:
-            logger.debug('No audio language tags present, forcing detection!')
+            logger.debug(f'No audio language tags present in "{os.path.basename(video.original_path)}" -> forcing detection!')
             detected_lang = self.detect_language(video.original_path, stream_index=original_stream_idx)
             if not detected_lang:
                 sub.task = "error"
@@ -651,7 +649,7 @@ class WhisperAIProvider(Provider):
                     except:
                         lang_name = "Unknown"
                     stream_info.append(f'Audio stream {file_idx}: {lang} ({lang_name})')
-                logger.debug(f'All audio streams in media file:\n' + '\n'.join(stream_info))
+                logger.debug(f'All audio streams in "{os.path.basename(video.original_path)}":\n' + '\n'.join(stream_info))
 
             logger.debug(f'Full file audio stream list: {file_audio_streams}')
 
@@ -660,12 +658,17 @@ class WhisperAIProvider(Provider):
                 for file_idx, file_lang in file_audio_streams:
                     if file_lang == lang:
                         actual_indices[bazarr_idx] = file_idx
-                        logger.debug(f'Found first matching audio language {lang} ({language_from_alpha3(lang)}) at audio stream #{file_idx}')
+                        logger.debug(f'Found first matching audio language {lang} ({language_from_alpha3(lang)}) at audio stream #{file_idx} in "{os.path.basename(video.original_path)}"')
                         break
                 else:
-                    # Fallback if language not found
-                    actual_indices[bazarr_idx] = bazarr_idx
-                    logger.warning(f'Could not find language "{lang}" in audio streams, using Bazarr audio index #{bazarr_idx}')
+                    # Fallback if language not found - use first available audio stream from file
+                    if file_audio_streams:
+                        first_audio_stream_idx = file_audio_streams[0][0]
+                        actual_indices[bazarr_idx] = first_audio_stream_idx
+                        logger.warning(f'Could not find language "{lang}" in audio streams, using first available audio stream #{first_audio_stream_idx} in "{os.path.basename(video.original_path)}"')
+                    else:
+                        logger.error(f'No audio streams found in file, cannot process')
+                        actual_indices[bazarr_idx] = -1  # Invalid index to indicate failure
         except Exception as e:
             logger.warning(f'Unable to probe file for accurate stream indices: {e}')
             # Default to using the bazarr-provided indices
@@ -679,7 +682,7 @@ class WhisperAIProvider(Provider):
                         lang_name = language_from_alpha3(lang)
                     except:
                         lang_name = "Unknown"
-                    stream_info.append(f'Audio stream #{idx} (Bazarr index): "{lang}" ({lang_name})')
+                    stream_info.append(f'Audio stream #{idx} (Bazarr index): {lang} ({lang_name})')
                 logger.debug(f'All audio streams in media file (using Bazarr indices):\n' + '\n'.join(stream_info))
 
         all_subtitles = []
@@ -696,7 +699,7 @@ class WhisperAIProvider(Provider):
                     lang_name = language_from_alpha3(lang)
                 except:
                     lang_name = "Unknown"
-                logger.debug(f'Will process audio language {lang} ({lang_name}) with audio stream #{file_idx}')
+                logger.debug(f'Will process audio language {lang} ({lang_name}) with audio stream #{file_idx} in "{os.path.basename(video.original_path)}"')
 
                 # Create a working copy of the video with just this language
                 video_copy = copy.copy(video)
