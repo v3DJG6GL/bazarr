@@ -452,7 +452,7 @@ class WhisperAIProvider(Provider):
         return whisper_get_language(results["language_code"], results["detected_language"])
 
     def query(self, language, video, original_stream_idx=None):
-        logger.debug(f'Processing language request: {language.alpha3} ({language_from_alpha3(language.alpha3)}) in "{os.path.basename(video.original_path)}"')
+        logger.debug(f'Processing subtitle language request: {language.alpha3} ({language_from_alpha3(language.alpha3)}) for "{os.path.basename(video.original_path)}"')
 
         if language not in self.languages:
             logger.debug(f'Language {language.alpha3} not supported by Whisper')
@@ -462,8 +462,6 @@ class WhisperAIProvider(Provider):
         sub.task = "transcribe"
         if original_stream_idx is not None:
             sub.original_stream_idx = original_stream_idx
-            logger.debug(f'Tracking original audio stream #{original_stream_idx} in "{os.path.basename(video.original_path)}"')
-
         # Handle undefined/no audio languages
         if not video.audio_languages:
             logger.debug(f'No audio language tags present in "{os.path.basename(video.original_path)}" -> forcing detection!')
@@ -477,7 +475,7 @@ class WhisperAIProvider(Provider):
             detected_alpha3 = detected_lang.alpha3
             if detected_alpha3 in language_mapping:
                 detected_alpha3 = language_mapping[detected_alpha3]
-                logger.debug(f'Mapped detected language "{detected_lang.alpha3}" -> "{detected_alpha3}"')
+                logger.debug(f'Mapped detected language "{detected_lang.alpha3}" -> "{detected_alpha3}" in "{os.path.basename(video.original_path)}')
 
             sub.audio_language = detected_alpha3
 
@@ -506,7 +504,7 @@ class WhisperAIProvider(Provider):
                 processed_lang = language_mapping.get(lang, lang)
                 processed_languages.append(processed_lang)
                 if lang != processed_lang:
-                    logger.debug(f'Mapping audio language tag: {lang} -> {processed_lang}')
+                    logger.debug(f'Mapping audio language tag: {lang} -> {processed_lang} in "{os.path.basename(video.original_path)}"')
 
             # Check for direct match between requested language and processed audio languages
             matched = False
@@ -575,7 +573,7 @@ class WhisperAIProvider(Provider):
                     # Simplify the log message and make it match the desired format
                     file_idx = sub.original_stream_idx if sub.original_stream_idx is not None else "unknown"
                     logger.debug(
-                        f'WhisperAI detected audio language for audio stream #{file_idx}: {original_lang_code} ({original_lang_name}) -> '
+                        f'WhisperAI detected language for audio stream #{file_idx}: {original_lang_code} ({original_lang_name}) -> '
                         f'{detected_lang.alpha3} ({language_from_alpha3(detected_lang.alpha3)}) - '
                         f'Requested Subtitles: {language.alpha3} ({language_from_alpha3(language.alpha3)})'
                     )
@@ -586,11 +584,20 @@ class WhisperAIProvider(Provider):
                     ]
 
                     file_idx = sub.original_stream_idx if sub.original_stream_idx is not None else "unknown"
-                    logger.debug(
-                        f'Using existing audio language tag from audio stream #{file_idx}: '
-                        f'{sub.audio_language} ({language_from_alpha3(sub.audio_language)}) - '
-                        f'Original language tag: {", ".join(formatted_original)})'
-                    )
+
+                    # Only log original language tag if it differs from the first logged language tag
+                    first_logged_tag = f'{sub.audio_language} ({language_from_alpha3(sub.audio_language)})'
+                    original_tags = ", ".join(formatted_original)
+
+                    if first_logged_tag != original_tags:
+                        logger.debug(
+                            f'Using language tag for audio stream #{file_idx}: {first_logged_tag} in "{os.path.basename(video.original_path)}" - '
+                            f'Original language tag: {original_tags}'
+                        )
+                    else:
+                        logger.debug(
+                            f'Using existing language tag from audio stream #{file_idx}: {first_logged_tag} in "{os.path.basename(video.original_path)}"'
+                        )
 
             if sub.task == "translate":
                 if language.alpha3 != "eng":
@@ -658,7 +665,7 @@ class WhisperAIProvider(Provider):
                 for file_idx, file_lang in file_audio_streams:
                     if file_lang == lang:
                         actual_indices[bazarr_idx] = file_idx
-                        logger.debug(f'Found first matching audio language {lang} ({language_from_alpha3(lang)}) at audio stream #{file_idx} in "{os.path.basename(video.original_path)}"')
+                        logger.debug(f'Found first matching language: {lang} ({language_from_alpha3(lang)}) at audio stream #{file_idx} in "{os.path.basename(video.original_path)}"')
                         break
                 else:
                     # Fallback if language not found - use first available audio stream from file
@@ -699,7 +706,7 @@ class WhisperAIProvider(Provider):
                     lang_name = language_from_alpha3(lang)
                 except:
                     lang_name = "Unknown"
-                logger.debug(f'Will process audio language {lang} ({lang_name}) with audio stream #{file_idx} in "{os.path.basename(video.original_path)}"')
+                logger.debug(f'Processing audio stream #{file_idx} with language: {lang} ({lang_name}) in "{os.path.basename(video.original_path)}"')
 
                 # Create a working copy of the video with just this language
                 video_copy = copy.copy(video)
