@@ -4,6 +4,7 @@ import time
 from datetime import timedelta
 
 from requests import Session
+
 from requests.exceptions import JSONDecodeError
 from subliminal_patch.subtitle import Subtitle
 from subliminal_patch.providers import Provider
@@ -214,7 +215,6 @@ def encode_audio_stream(path, ffmpeg_path, audio_stream_language=None, stream_in
     else:
         logger.debug(f'Encoding audio stream #{stream_index} to WAV with ffmpeg in "{os.path.basename(path)}"')
     try:
-        # Get language info if available for debug logging
         lang_info = ""
         if audio_stream_language:
             try:
@@ -334,6 +334,7 @@ class WhisperAISubtitle(Subtitle):
             matches.update(["title"])
 
         return matches
+
 
 class WhisperAIProvider(Provider):
     '''Whisper AI Provider.'''
@@ -582,7 +583,6 @@ class WhisperAIProvider(Provider):
 
             if sub.task == "translate":
                 if language.alpha3 != "eng":
-                    # Use the original stream index directly for consistent logging
                     file_idx = sub.original_stream_idx if sub.original_stream_idx is not None else "unknown"
 
                     logger.debug(
