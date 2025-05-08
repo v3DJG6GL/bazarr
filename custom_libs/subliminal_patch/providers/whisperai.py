@@ -452,7 +452,7 @@ class WhisperAIProvider(Provider):
         return whisper_get_language(results["language_code"], results["detected_language"])
 
     def query(self, language, video, original_stream_idx=None):
-        logger.debug(f'Processing subtitle language request: {language.alpha3} ({language_from_alpha3(language.alpha3)}) for "{os.path.basename(video.original_path)}"')
+        logger.debug(f'Processing subtitle request: {language.alpha3} ({language_from_alpha3(language.alpha3)}) for "{os.path.basename(video.original_path)}"')
 
         if language not in self.languages:
             logger.debug(f'Language {language.alpha3} not supported by Whisper')
@@ -665,14 +665,14 @@ class WhisperAIProvider(Provider):
                 for file_idx, file_lang in file_audio_streams:
                     if file_lang == lang:
                         actual_indices[bazarr_idx] = file_idx
-                        logger.debug(f'Found first matching language: {lang} ({language_from_alpha3(lang)}) at audio stream #{file_idx} in "{os.path.basename(video.original_path)}"')
+                        logger.debug(f'Found first matching language tag: {lang} ({language_from_alpha3(lang)}) at audio stream #{file_idx} in "{os.path.basename(video.original_path)}"')
                         break
                 else:
                     # Fallback if language not found - use first available audio stream from file
                     if file_audio_streams:
                         first_audio_stream_idx = file_audio_streams[0][0]
                         actual_indices[bazarr_idx] = first_audio_stream_idx
-                        logger.warning(f'Could not find language "{lang}" in audio streams, using first available audio stream #{first_audio_stream_idx} in "{os.path.basename(video.original_path)}"')
+                        logger.warning(f'Could not find language tag "{lang}" in audio streams, using first available audio stream #{first_audio_stream_idx} in "{os.path.basename(video.original_path)}"')
                     else:
                         logger.error(f'No audio streams found in file, cannot process')
                         actual_indices[bazarr_idx] = -1  # Invalid index to indicate failure
@@ -706,7 +706,7 @@ class WhisperAIProvider(Provider):
                     lang_name = language_from_alpha3(lang)
                 except:
                     lang_name = "Unknown"
-                logger.debug(f'Processing audio stream #{file_idx} with language: {lang} ({lang_name}) in "{os.path.basename(video.original_path)}"')
+                logger.debug(f'Processing audio stream #{file_idx} with language tag: {lang} ({lang_name}) in "{os.path.basename(video.original_path)}"')
 
                 # Create a working copy of the video with just this language
                 video_copy = copy.copy(video)
