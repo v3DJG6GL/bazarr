@@ -146,6 +146,7 @@ def whisper_get_language_reverse(alpha3):
 language_mapping = {
     "gsw": "deu",  # Swiss German -> German (ISO 639-3)
     "und": "eng",
+    "enc": "eng", # Some older files like e.g. DivX are using ISO 639-1 language codes like e.g. "en" for english, which gets wrongly assigned to the language "En" with the ISO 639-3 code "enc"
 }
 
 
@@ -389,7 +390,10 @@ class WhisperAIProvider(Provider):
             logger.debug(f'Detecting language for stream #{stream_index} in "{os.path.basename(path)}"')
         out = encode_audio_stream(path, self.ffmpeg_path, stream_index=stream_index)
         if out is None:
-            logger.info(f'Whisper cannot detect language of "{os.path.basename(path)}" (stream #{stream_index}) - bad audio stream')
+            if stream_index is None:
+                logger.info(f'WhisperAI: cannot detect language of "{os.path.basename(path)}" (first audio stream (a:0)) -> missing/bad audio stream!')
+            else:
+                logger.info(f'WhisperAI: cannot detect language of "{os.path.basename(path)}" (stream #{stream_index}) -> missing/bad audio stream!')
             return None
 
         try:
@@ -705,11 +709,12 @@ class WhisperAIProvider(Provider):
         # Invoke Whisper through the API. This may take a long time depending on the file.
         # TODO: This loads the entire file into memory, find a good way to stream the file in chunks
 
+        # TODO: Remove this part since at line ~473 this case is already handeled?
         if subtitle.task == "translate" and subtitle.language.alpha3 != "eng":
             logger.warning(f'WhisperAI cannot translate to non-English target language: {subtitle.language.alpha3}')
             subtitle.content = None
             return
-
+        # TODO: Remove this part since at line ~508 this case is already handeled?
         if subtitle.task == "error":
             return
 
@@ -719,6 +724,7 @@ class WhisperAIProvider(Provider):
             audio_stream_language=subtitle.force_audio_stream,
             stream_index=subtitle.original_stream_idx
         )
+        # TODO: Remove this part since at line ~391 this case is already handeled?
         if not out:
             logger.info(f'WhisperAI cannot process "{subtitle.video.original_path}" due to missing/bad audio stream')
             subtitle.content = None
@@ -729,13 +735,15 @@ class WhisperAIProvider(Provider):
         output_language = "eng" if subtitle.task == "translate" else subtitle.audio_language
 
         input_language = whisper_get_language_reverse(subtitle.audio_language)
+        # TODO: change this part? Unknown language tags can be mapped with "language_mapping" (line ~146). Should all other unknown (and not mapped) languages be treated as English by default?
         if not input_language:
             if output_language == "eng":
                 input_language = "en"
                 subtitle.task = "transcribe"
-                logger.info(f'Treating unsupported language tag "{subtitle.audio_language}" as English')
+                logger.info(f'WhisperAI: Treating unsupported audio language tag {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)}) as English in "{os.path.basename(subtitle.video.original_path)}"')
             else:
-                logger.info(f'Unsupported audio language tag: "{subtitle.audio_language}"')
+            # TODO: Remove this part since at line ~441 this case is already handeled?
+                logger.info(f'WhisperAI: Unsupported audio language tag {subtitle.audio_language} ({language_from_alpha3(subtitle.audio_language)}) in "{os.path.basename(subtitle.video.original_path)}"')
                 subtitle.content = None
                 return
 
