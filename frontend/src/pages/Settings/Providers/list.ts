@@ -624,6 +624,12 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
         defaultValue: ["und", "mul", "mis", "zxx"],
       },
       {
+        type: "switch",
+        key: "enforce_translation_to_all_language",
+        name: "EXPERIMENTAL: Enforce translation to all language (use with care!)",
+        defaultValue: false,
+      },
+      {
         type: "testbutton",
         key: "whisperai",
         name: "Test Connection button",

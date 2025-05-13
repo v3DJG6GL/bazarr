@@ -341,6 +341,7 @@ def get_providers_auth():
             'loglevel': settings.whisperai.loglevel,
             'pass_video_name': settings.whisperai.pass_video_name,
             'ambiguous_language_codes': settings.whisperai.ambiguous_language_codes,
+            'enforce_translation_to_all_language': settings.whisperai.enforce_translation_to_all_language,
         },
         "animetosho": {
             'search_threshold': settings.animetosho.search_threshold,

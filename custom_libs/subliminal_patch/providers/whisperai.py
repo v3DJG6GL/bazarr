@@ -347,7 +347,7 @@ class WhisperAIProvider(Provider):
 
     video_types = (Episode, Movie)
 
-    def __init__(self, endpoint=None, response=None, timeout=None, ffmpeg_path=None, pass_video_name=None, loglevel=None, ambiguous_language_codes=None):
+    def __init__(self, endpoint=None, response=None, timeout=None, ffmpeg_path=None, pass_video_name=None, loglevel=None, ambiguous_language_codes=None, enforce_translation_to_all_language=None):
         set_log_level(loglevel)
         if not endpoint:
             raise ConfigurationError('Whisper Web Service Endpoint must be provided')
@@ -374,6 +374,10 @@ class WhisperAIProvider(Provider):
         # Use provided ambiguous language codes directly without fallback
         self.ambiguous_language_codes = ambiguous_language_codes if ambiguous_language_codes is not None else []
         logger.debug(f'Using ambiguous language codes: {self.ambiguous_language_codes}')
+
+        # Set enforce_translation_to_all_language from provided parameter
+        self.enforce_translation_to_all_language = bool(enforce_translation_to_all_language)
+        logger.debug(f'Enforce translation to all languages: {self.enforce_translation_to_all_language}')
 
     def initialize(self):
         self.session = Session()
@@ -469,22 +473,28 @@ class WhisperAIProvider(Provider):
 
             # Determine if we need transcription or translation
             if detected_alpha3 != language.alpha3:
-                # Set to translation task only if target is English
-                if language.alpha3 == "eng":
+                # When enforce_translation_to_all_language is True, always set task to translate
+                if self.enforce_translation_to_all_language:
                     sub.task = "translate"
+                    logger.debug(f'Enforcing translation from {detected_alpha3} ({language_from_alpha3(detected_alpha3)}) -> {language.alpha3} ({language_from_alpha3(language.alpha3)})')
                 else:
-                    # Non-English target languages aren't supported for translation
-                    if sub.original_stream_idx is None:
-                        logger.debug(
-                            f'Cannot translate from first audio stream (a:0) ({detected_alpha3} -> {language.alpha3})! '
-                            f'Only translations to English supported! File: "{os.path.basename(video.original_path)}"'
-                        )
+                    # Original behavior - only English is supported as target language for translation
+                    if language.alpha3 == "eng":
+                        sub.task = "translate"
                     else:
-                        logger.debug(
-                            f'Cannot translate from audio stream #{sub.original_stream_idx} ({detected_alpha3} -> {language.alpha3})! '
-                            f'Only translations to English supported! File: "{os.path.basename(video.original_path)}"'
-                        )
-                    return None
+                        # Non-English target languages aren't supported for translation
+                        if sub.original_stream_idx is None:
+                            logger.debug(
+                                f'Cannot translate from first audio stream (a:0) ({detected_alpha3} -> {language.alpha3})! '
+                                f'Only translations to English supported! File: "{os.path.basename(video.original_path)}"'
+                            )
+                        else:
+                            logger.debug(
+                                f'Cannot translate from audio stream #{sub.original_stream_idx} ({detected_alpha3} -> {language.alpha3})! '
+                                f'Only translations to English supported! File: "{os.path.basename(video.original_path)}"'
+                            )
+                        return None
+
         else:
             # Process all audio languages with mapping
             processed_languages = []
@@ -586,9 +596,8 @@ class WhisperAIProvider(Provider):
                         )
 
             if sub.task == "translate":
-                if language.alpha3 != "eng":
+                if language.alpha3 != "eng" and not self.enforce_translation_to_all_language:
                     file_idx = sub.original_stream_idx if sub.original_stream_idx is not None else "unknown"
-
                     logger.debug(
                         f'Cannot translate from audio stream #{file_idx} ({sub.audio_language} -> {language.alpha3})! '
                         f'Only translations to English supported! File: "{os.path.basename(sub.video.original_path)}"'
@@ -710,7 +719,8 @@ class WhisperAIProvider(Provider):
         # TODO: This loads the entire file into memory, find a good way to stream the file in chunks
 
         # TODO: Remove this part since at line ~473 this case is already handeled?
-        if subtitle.task == "translate" and subtitle.language.alpha3 != "eng":
+        # Modified check for non-English translation
+        if subtitle.task == "translate" and subtitle.language.alpha3 != "eng" and not self.enforce_translation_to_all_language:
             logger.warning(f'WhisperAI cannot translate to non-English target language: {subtitle.language.alpha3}')
             subtitle.content = None
             return
@@ -732,7 +742,18 @@ class WhisperAIProvider(Provider):
 
         logger.debug(f'Audio stream length: {len(out):,} bytes')
 
-        output_language = "eng" if subtitle.task == "translate" else subtitle.audio_language
+        # Modified output language selection based on enforce_translation_to_all_language setting
+        if subtitle.task == "translate":
+            if self.enforce_translation_to_all_language:
+                # Use the actual target language when enforce_translation_to_all_language is True
+                output_language = subtitle.language.alpha3
+                logger.debug(f'Enforcing translation to non-English language: {output_language} ({language_from_alpha3(output_language)})')
+            else:
+                # Default behavior - translate only to English
+                output_language = "eng"
+        else:
+            # For transcription, use the audio language
+            output_language = subtitle.audio_language
 
         input_language = whisper_get_language_reverse(subtitle.audio_language)
         # TODO: change this part? Unknown language tags can be mapped with "language_mapping" (line ~146). Should all other unknown (and not mapped) languages be treated as English by default?
@@ -752,11 +773,30 @@ class WhisperAIProvider(Provider):
         start_time = time.time()
         video_name = subtitle.video.original_path if self.pass_video_name else None
 
+        # Modified output language handling for non-English translation
+        if subtitle.task == "translate":
+            if self.enforce_translation_to_all_language and subtitle.language.alpha3 != "eng":
+                # For non-English translation, we need to use special parameters
+                # Based on the "glitch" mentioned in documentation, set the task to transcribe
+                # but specify the target language as the language parameter
+                actual_task = "transcribe"  # Override the task for the API
+                api_language = whisper_get_language_reverse(subtitle.language.alpha3)  # Use target language as API language
+                logger.debug(f'Using special parameters for non-English translation: task={actual_task}, language={api_language}')
+            else:
+                # Standard English translation
+                actual_task = subtitle.task
+                api_language = input_language
+        else:
+            # Standard transcription
+            actual_task = subtitle.task
+            api_language = input_language
+
+        # Then use these variables in the API call
         response = self.session.post(
             f"{self.endpoint}/asr",
             params={
-                'task': subtitle.task,
-                'language': input_language,
+                'task': actual_task,  # Use modified task
+                'language': api_language,  # Use chosen language
                 'output': 'srt',
                 'encode': 'false',
                 'video_file': video_name
