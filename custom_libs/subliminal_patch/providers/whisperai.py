@@ -773,12 +773,10 @@ class WhisperAIProvider(Provider):
         start_time = time.time()
         video_name = subtitle.video.original_path if self.pass_video_name else None
 
-        # Modified output language handling for non-English translation
+        # Output language handling for non-English translation
         if subtitle.task == "translate":
             if self.enforce_translation_to_all_language and subtitle.language.alpha3 != "eng":
-                # For non-English translation, we need to use special parameters
-                # Based on the "glitch" mentioned in documentation, set the task to transcribe
-                # but specify the target language as the language parameter
+                # For non-English translation, let Whisper needs to belief the audio language stream is identically with the subtitle language requested.
                 actual_task = "transcribe"  # Override the task for the API
                 api_language = whisper_get_language_reverse(subtitle.language.alpha3)  # Use target language as API language
                 logger.debug(f'Using special parameters for non-English translation: task={actual_task}, language={api_language}')
@@ -791,12 +789,11 @@ class WhisperAIProvider(Provider):
             actual_task = subtitle.task
             api_language = input_language
 
-        # Then use these variables in the API call
         response = self.session.post(
             f"{self.endpoint}/asr",
             params={
                 'task': actual_task,  # Use modified task
-                'language': api_language,  # Use chosen language
+                'language': api_language,  # Use requested subtitle language as audio language
                 'output': 'srt',
                 'encode': 'false',
                 'video_file': video_name
