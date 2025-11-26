@@ -27,6 +27,7 @@ declare namespace Language {
   interface ProfileItem {
     id: number;
     audio_exclude: PythonBoolean;
+    audio_only_include: PythonBoolean;
     forced: PythonBoolean;
     hi: PythonBoolean;
     language: CodeType;
@@ -259,6 +260,80 @@ declare namespace Parameter {
   interface Range {
     start: number;
     length: number;
+  }
+}
+
+declare namespace Plex {
+  interface Pin {
+    pinId: string;
+    code: string;
+    clientId: string;
+    authUrl: string;
+  }
+
+  interface ValidationResult {
+    valid: boolean;
+    auth_method?: string;
+    username?: string;
+    email?: string;
+    error?: string;
+    code?: string;
+  }
+
+  interface PinCheckResult {
+    authenticated: boolean;
+    username?: string;
+    email?: string;
+    error?: string;
+  }
+
+  interface ServerConnection {
+    uri: string;
+    protocol: string;
+    address: string;
+    port: number;
+    local: boolean;
+    available?: boolean;
+    latency?: number;
+  }
+
+  interface Server {
+    name: string;
+    machineIdentifier: string;
+    connections: ServerConnection[];
+    version: string;
+    platform: string;
+    device: string;
+    bestConnection?: ServerConnection | null;
+  }
+
+  interface Library {
+    key: string;
+    title: string;
+    type: string;
+    count: number;
+    agent: string;
+    scanner: string;
+    language: string;
+    uuid: string;
+    updatedAt: number;
+    createdAt: number;
+  }
+
+  interface WebhookResult {
+    success: boolean;
+    message: string;
+    webhook_url?: string;
+    total_webhooks?: number;
+  }
+
+  interface WebhookInfo {
+    url: string;
+  }
+
+  interface WebhookList {
+    webhooks: WebhookInfo[];
+    count: number;
   }
 }
 

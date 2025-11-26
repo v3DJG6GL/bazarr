@@ -5,7 +5,7 @@ import sqlite3
 import shutil
 import logging
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zipfile import ZipFile, BadZipFile, ZIP_DEFLATED
 from glob import glob
 
@@ -133,6 +133,9 @@ def restore_from_backup():
                 logging.exception(f'Unable to delete {dest_database_path}')
 
         logging.info('Backup restored successfully. Bazarr will restart.')
+        from app.server import webserver
+        if webserver is not None:
+            webserver.close_all()
         restart_bazarr()
     elif os.path.isfile(restore_config_path) or os.path.isfile(restore_database_path):
         logging.debug('Cannot restore a partial backup. You must have both config and database.')
@@ -172,8 +175,10 @@ def prepare_restore(filename):
 
     if success:
         logging.debug('time to restart')
-        from app.server import webserver
-        webserver.restart()
+        from app.server import webserver        
+        if webserver is not None:
+            webserver.close_all()
+        restart_bazarr()
 
     return success
 
@@ -190,7 +195,8 @@ def backup_rotation():
 
     logging.debug(f'Cleaning up backup files older than {backup_retention} days')
     for file in backup_files:
-        if datetime.fromtimestamp(os.path.getmtime(file)) + timedelta(days=int(backup_retention)) < datetime.utcnow():
+        if (datetime.fromtimestamp(os.path.getmtime(file), tz=timezone.utc) + timedelta(days=int(backup_retention)) <
+                datetime.now(tz=timezone.utc)):
             logging.debug(f'Deleting old backup file {file}')
             try:
                 os.remove(file)

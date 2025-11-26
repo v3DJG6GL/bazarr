@@ -9,6 +9,7 @@ interface Settings {
   sonarr: Settings.Sonarr;
   radarr: Settings.Radarr;
   backup: Settings.Backup;
+  translator: Settings.Translator;
   // Anitcaptcha
   anticaptcha: Settings.Anticaptcha;
   deathbycaptcha: Settings.DeathByCaptche;
@@ -171,6 +172,15 @@ declare namespace Settings {
     only_monitored: boolean;
     movies_sync: number;
     excluded_tags: string[];
+  }
+
+  interface Translator {
+    default_score: number;
+    gemini_key: string;
+    gemini_model: string;
+    lingarr_url: string;
+    translator_info: boolean;
+    translator_type: string;
   }
 
   interface Plex {

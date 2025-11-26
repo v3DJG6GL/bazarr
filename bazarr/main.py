@@ -35,10 +35,11 @@ else:
     # there's missing embedded packages after a commit
     check_if_new_update()
 
-from app.database import (System, database, update, migrate_db, create_db_revision, upgrade_languages_profile_hi_values,
+from app.database import (System, database, update, migrate_db, create_db_revision, upgrade_languages_profile_values,
                           fix_languages_profiles_with_duplicate_ids)  # noqa E402
 from app.notifier import update_notifier  # noqa E402
 from languages.get_languages import load_language_in_db  # noqa E402
+from app.jobs_queue import jobs_queue  # noqa E402
 from app.signalr_client import sonarr_signalr_client, radarr_signalr_client  # noqa E402
 from app.server import webserver, app  # noqa E402
 from app.announcements import get_announcements_to_file  # noqa E402
@@ -50,7 +51,7 @@ if args.create_db_revision:
     stop_bazarr(EXIT_NORMAL)
 else:
     migrate_db(app)
-    upgrade_languages_profile_hi_values()
+    upgrade_languages_profile_values()
     fix_languages_profiles_with_duplicate_ids()
 
 configure_proxy_func()
@@ -66,6 +67,11 @@ database.execute(
 load_language_in_db()
 
 update_notifier()
+
+jobs_queue_thread = Thread(target=jobs_queue.consume_jobs_pending_queue)
+jobs_queue_thread.daemon = True
+jobs_queue_thread.start()
+logging.info("Interactive jobs queue started and waiting for tasks")
 
 if not args.no_signalr:
     if settings.general.use_sonarr:
