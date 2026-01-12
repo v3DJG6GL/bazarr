@@ -6,8 +6,7 @@ name: Docker
 # documentation.
 
 on:
-  schedule:
-    - cron: '25 2 * * *'
+  workflow_dispatch:
   push:
     branches: [ "whisperai-advanced" ]
     # Publish semver tags as releases.
