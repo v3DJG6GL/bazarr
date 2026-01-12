@@ -19,11 +19,6 @@ jobs:
       UI_DIRECTORY: ./frontend
       ASSET_DIRECTORY: ./__builds__
     steps:
-      - name: Validate branch
-        if: ${{ github.ref != 'refs/heads/development' }}
-        run: |
-          echo This action can only be run on development branch, not ${{ github.ref }}
-          exit 1
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -74,6 +69,6 @@ jobs:
         uses: devmasx/merge-branch@1.4.0
         with:
           type: now
-          from_branch: development
+          from_branch: ${{ inputs.source_branch }}
           target_branch: master
           github_token: ${{ secrets.GITHUB_TOKEN }}
