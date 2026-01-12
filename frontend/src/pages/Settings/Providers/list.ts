@@ -89,6 +89,11 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
     message: "Requires AniDB Integration.",
   },
   {
+    key: "animesubinfo",
+    name: "AnimeSub.info",
+    description: "Polish Anime Subtitles Provider",
+  },
+  {
     key: "avistaz",
     name: "AvistaZ",
     description:
@@ -469,6 +474,19 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
     message: "Make sure to use a unique and credible user agent.",
   },
   {
+    key: "subsource",
+    name: "subsource.net",
+    message:
+      "API key is  required. You can create your own API key on your Subsource profile page.",
+    inputs: [
+      {
+        type: "password",
+        key: "apikey",
+        name: "API key",
+      },
+    ],
+  },
+  {
     key: "subssabbz",
     name: "Subs.sab.bz",
     description: "Bulgarian Subtitles Provider",
@@ -608,6 +626,18 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
         type: "switch",
         key: "pass_video_name",
         name: "Pass video filename to Whisper (for logging)",
+        defaultValue: false,
+      },
+      {
+        type: "chips",
+        key: "ambiguous_language_codes",
+        name: "Ambiguous Language Codes: Language that should always trigger WhisperAI language detection (Default: und, mul, mis, zxx)",
+        defaultValue: ["und", "mul", "mis", "zxx"],
+      },
+      {
+        type: "switch",
+        key: "enforce_translation_to_all_language",
+        name: "EXPERIMENTAL: Enforce translation to all language (use with care!)",
         defaultValue: false,
       },
       {

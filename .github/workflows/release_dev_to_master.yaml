@@ -2,6 +2,10 @@ name: release_dev_to_master
 on:
   workflow_dispatch:
     inputs:
+      source_branch:
+        description: "Branch to release from"
+        required: true
+        default: "development"
       increment:
         description: "Increment Type (major, minor, patch)"
         required: true
@@ -15,17 +19,12 @@ jobs:
       UI_DIRECTORY: ./frontend
       ASSET_DIRECTORY: ./__builds__
     steps:
-      - name: Validate branch
-        if: ${{ github.ref != 'refs/heads/development' }}
-        run: |
-          echo This action can only be run on development branch, not ${{ github.ref }}
-          exit 1
 
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          ref: development
+          ref: ${{ inputs.source_branch }}
 
       - name: Setup Git
         run: git config --global user.name "github-actions"
@@ -38,7 +37,7 @@ jobs:
           restore-keys: ${{ runner.os }}-modules-
 
       - name: Setup NodeJS
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version-file: "${{ env.UI_DIRECTORY }}/.nvmrc"
 
@@ -70,6 +69,6 @@ jobs:
         uses: devmasx/merge-branch@1.4.0
         with:
           type: now
-          from_branch: development
+          from_branch: ${{ inputs.source_branch }}
           target_branch: master
           github_token: ${{ secrets.GITHUB_TOKEN }}
