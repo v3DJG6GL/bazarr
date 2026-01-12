@@ -16,16 +16,16 @@ jobs:
       ASSET_DIRECTORY: ./__builds__
     steps:
       - name: Validate branch
-        if: ${{ github.ref != 'refs/heads/development' }}
+        if: ${{ github.ref != 'refs/heads/workflow_dispatch' }}
         run: |
-          echo This action can only be run on development branch, not ${{ github.ref }}
+          echo This action can only be run on workflow_dispatch branch, not ${{ github.ref }}
           exit 1
 
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          ref: development
+          ref: workflow_dispatch
 
       - name: Setup Git
         run: git config --global user.name "github-actions"
@@ -66,10 +66,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Merge development -> master
+      - name: Merge workflow_dispatch -> master
         uses: devmasx/merge-branch@1.4.0
         with:
           type: now
-          from_branch: development
+          from_branch: workflow_dispatch
           target_branch: master
           github_token: ${{ secrets.GITHUB_TOKEN }}
