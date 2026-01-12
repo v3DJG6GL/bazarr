@@ -1,7 +1,11 @@
 name: release_dev_to_master
 on:
-  workflow-dispatch:
+  workflow_dispatch:
     inputs:
+      source_branch:
+        description: "Branch to release from"
+        required: true
+        default: "development"
       increment:
         description: "Increment Type (major, minor, patch)"
         required: true
@@ -16,16 +20,16 @@ jobs:
       ASSET_DIRECTORY: ./__builds__
     steps:
       - name: Validate branch
-        if: ${{ github.ref != 'refs/heads/whisperai-advanced' }}
+        if: ${{ github.ref != 'refs/heads/development' }}
         run: |
-          echo This action can only be run on whisperai-advanced branch, not ${{ github.ref }}
+          echo This action can only be run on development branch, not ${{ github.ref }}
           exit 1
 
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          ref: whisperai-advanced
+          ref: ${{ inputs.source_branch }}
 
       - name: Setup Git
         run: git config --global user.name "github-actions"
@@ -66,10 +70,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Merge whisperai-advanced -> master
+      - name: Merge development -> master
         uses: devmasx/merge-branch@1.4.0
         with:
           type: now
-          from_branch: whisperai-advanced
+          from_branch: development
           target_branch: master
           github_token: ${{ secrets.GITHUB_TOKEN }}
