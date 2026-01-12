@@ -3,6 +3,7 @@ import { useDocumentTitle } from "@mantine/hooks";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { ColumnDef } from "@tanstack/react-table";
 import { useIsAnyActionRunning } from "@/apis/hooks";
+import { useInstanceName } from "@/apis/hooks/site";
 import { UsePaginationQueryResult } from "@/apis/queries/hooks";
 import { QueryPageTable, Toolbox } from "@/components";
 
@@ -22,7 +23,7 @@ function WantedView<T extends Wanted.Base>({
   const dataCount = query.paginationStatus.totalCount;
   const hasTask = useIsAnyActionRunning();
 
-  useDocumentTitle(`Wanted ${name} - Bazarr`);
+  useDocumentTitle(`Wanted ${name} - ${useInstanceName()}`);
 
   return (
     <Container fluid px={0}>
