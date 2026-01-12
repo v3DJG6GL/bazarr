@@ -1,6 +1,6 @@
 name: release_dev_to_master
 on:
-  whisperai-advanced:
+  workflow-dispatch:
     inputs:
       increment:
         description: "Increment Type (major, minor, patch)"
