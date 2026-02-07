@@ -56,12 +56,12 @@ def get_announcements_to_file(job_id=None, startup=False):
 
     try:
         r = requests.get(
-            url="https://cdn.statically.io/gh/morpheus65535/bazarr-binaries@refs/heads/master/announcements.json",
+            url="https://cdn.jsdelivr.net/gh/morpheus65535/bazarr-binaries@latest/announcements.json",
             timeout=30
         )
     except Exception:
         try:
-            logging.exception("Error trying to get announcements from Statically, falling back to Github.")
+            logging.exception("Error trying to get announcements from jsdelivr.net, falling back to Github.")
             r = requests.get(
                 url="https://raw.githubusercontent.com/morpheus65535/bazarr-binaries/refs/heads/master/announcements.json",
                 timeout=30
@@ -79,7 +79,7 @@ def get_announcements_to_file(job_id=None, startup=False):
 
 def get_online_announcements():
     try:
-        with open(os.path.join(args.config_dir, 'config', 'announcements.json'), 'r') as f:
+        with open(os.path.join(args.config_dir, 'config', 'announcements.json'), 'r', encoding='utf-8') as f:
             data = json.load(f)
     except (OSError, json.JSONDecodeError):
         return []
@@ -95,17 +95,6 @@ def get_online_announcements():
 
 def get_local_announcements():
     announcements = []
-
-    # opensubtitles.org end-of-life
-    enabled_providers = get_enabled_providers()
-    if enabled_providers and 'opensubtitles' in enabled_providers and not settings.opensubtitles.vip:
-        announcements.append({
-            'text': 'Opensubtitles.org is deprecated for non-VIP users, migrate to Opensubtitles.com ASAP and disable '
-                    'this provider to remove this announcement.',
-            'link': 'https://wiki.bazarr.media/Troubleshooting/OpenSubtitles-migration/',
-            'dismissible': False,
-            'timestamp': 1676236978,
-        })
 
     # deprecated Sonarr and Radarr versions
     if get_sonarr_info.is_deprecated():

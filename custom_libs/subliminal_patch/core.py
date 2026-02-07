@@ -873,9 +873,6 @@ def scan_video(path, dont_use_actual_file=False, hints=None, providers=None, ski
             if "bsplayer" in providers:
                 video.hashes['bsplayer'] = osub_hash = hash_opensubtitles(hash_path)
 
-            if "opensubtitles" in providers:
-                video.hashes['opensubtitles'] = osub_hash = osub_hash or hash_opensubtitles(hash_path)
-
             if "opensubtitlescom" in providers:
                 video.hashes['opensubtitlescom'] = osub_hash = osub_hash or hash_opensubtitles(hash_path)
 
