@@ -5,7 +5,7 @@ on:
       source_branch:
         description: "Branch to release from"
         required: true
-        default: "development"
+        default: "whisperai-advanced"
       increment:
         description: "Increment Type (major, minor, patch)"
         required: true
