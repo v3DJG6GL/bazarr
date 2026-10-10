@@ -2,6 +2,14 @@
 
 FROM ghcr.io/linuxserver/unrar:latest AS unrar
 
+# build the frontend from this checkout
+FROM node:24-alpine AS frontend
+WORKDIR /src/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
+
 FROM ghcr.io/linuxserver/baseimage-alpine:3.23
 
 # set version label
@@ -9,9 +17,12 @@ ARG BUILD_DATE
 ARG VERSION
 ARG BAZARR_VERSION
 LABEL build_version="v3DJG6GL version:- ${VERSION} Build-date:- ${BUILD_DATE}"
-LABEL maintainer="chbmb"
+LABEL maintainer="v3DJG6GL"
 # hard set UTC in case the user does not define it
 ENV TZ="Etc/UTC"
+
+# install requirements first so code changes don't invalidate this layer
+COPY requirements.txt postgres-requirements.txt /app/bazarr/bin/
 
 RUN \
   echo "**** install build packages ****" && \
@@ -30,24 +41,6 @@ RUN \
     libxslt \
     mediainfo \
     python3 && \
-  echo "**** install bazarr ****" && \
-  mkdir -p \
-    /app/bazarr/bin && \
-  if [ -z ${BAZARR_VERSION+x} ]; then \
-    BAZARR_VERSION=$(curl -sX GET "https://api.github.com/repos/v3DJG6GL/bazarr/releases/latest" \
-    | awk '/tag_name/{print $4;exit}' FS='[""]'); \
-  fi && \
-  curl -o \
-    /tmp/bazarr.zip -L \
-    "https://github.com/v3DJG6GL/bazarr/releases/download/${BAZARR_VERSION}/bazarr.zip" && \
-  unzip \
-    /tmp/bazarr.zip -d \
-    /app/bazarr/bin && \
-  rm -Rf /app/bazarr/bin/bin && \
-  echo "UpdateMethod=docker\nBranch=master\nPackageVersion=${VERSION}\nPackageAuthor=v3DJG6GL" > /app/bazarr/package_info && \
-  curl -o \
-    /app/bazarr/bin/postgres-requirements.txt -L \
-    "https://raw.githubusercontent.com/v3DJG6GL/bazarr/${BAZARR_VERSION}/postgres-requirements.txt" && \
   echo "**** Install requirements ****" && \
   python3 -m venv /lsiopy && \
   pip install -U --no-cache-dir \
@@ -56,7 +49,6 @@ RUN \
   pip install -U --no-cache-dir --find-links https://wheel-index.linuxserver.io/alpine-3.23/ \
     -r /app/bazarr/bin/requirements.txt \
     -r /app/bazarr/bin/postgres-requirements.txt && \
-  printf "v3DJG6GL version: ${VERSION}\nBuild-date: ${BUILD_DATE}" > /build_version && \
   echo "**** clean up ****" && \
   apk del --purge \
     build-dependencies && \
@@ -64,6 +56,19 @@ RUN \
     $HOME/.cache \
     $HOME/.cargo \
     /tmp/*
+
+# install bazarr from this checkout (same file set as .github/files_to_copy)
+COPY bazarr.py /app/bazarr/bin/
+COPY bazarr/ /app/bazarr/bin/bazarr/
+COPY custom_libs/ /app/bazarr/bin/custom_libs/
+COPY libs/ /app/bazarr/bin/libs/
+COPY migrations/ /app/bazarr/bin/migrations/
+COPY --from=frontend /src/frontend/build/ /app/bazarr/bin/frontend/build/
+
+RUN \
+  echo "${BAZARR_VERSION:-unknown}" > /app/bazarr/bin/VERSION && \
+  printf "UpdateMethod=docker\nBranch=master\nPackageVersion=${VERSION}\nPackageAuthor=v3DJG6GL\n" > /app/bazarr/package_info && \
+  printf "v3DJG6GL version: ${VERSION}\nBuild-date: ${BUILD_DATE}\n" > /build_version
 
 # add local files
 COPY root/ /

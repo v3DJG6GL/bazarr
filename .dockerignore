@@ -1,0 +1,11 @@
+.git
+.github
+**/node_modules
+**/__pycache__
+*.pyc
+frontend/build
+data
+tests
+screenshot
+Dockerfile
+.dockerignore
