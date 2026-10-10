@@ -41,6 +41,8 @@ jobs:
       - name: Compute version
         id: version
         run: |
+          # the fork's tags lag behind upstream, so describe against upstream's release tags
+          git fetch --no-tags https://github.com/morpheus65535/bazarr.git '+refs/tags/*:refs/tags/*'
           echo "bazarr=$(git describe --tags --always)" >> "$GITHUB_OUTPUT"
           echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
